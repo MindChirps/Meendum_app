@@ -16,7 +16,7 @@ export function TaskCard({ task }: TaskCardProps) {
 
   return (
     <div className="flex flex-col items-center justify-center px-6 pt-16 w-full">
-      <div className="text-8xl mb-12 animate-pulse">
+      <div className="text-8xl mb-12">
         {task.icon}
       </div>
 

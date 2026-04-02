@@ -1,7 +1,7 @@
 {
-  "name": "Meendum",
+  "name": "Meendum - மீண்டும்",
   "short_name": "மீண்டும்",
-  "start_url": "/appa",
+  "start_url": "/",
   "display": "fullscreen",
   "background_color": "#FFFDE7",
   "theme_color": "#388E3C",

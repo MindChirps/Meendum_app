@@ -1,10 +1,31 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { useState, useEffect, useCallback } from 'react';
+import { supabase, getLocalToday } from '../lib/supabase';
 import type { Completion } from '../types/database';
 
 export function useCompletions() {
   const [completions, setCompletions] = useState<Completion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchCompletions = useCallback(async () => {
+    const today = getLocalToday();
+
+    const { data, error: fetchErr } = await supabase
+      .from('completions')
+      .select('*')
+      .eq('date', today)
+      .order('completed_at', { ascending: false });
+
+    if (fetchErr) {
+      setError('நிறைவுத் தரவைப் பெற இயலவில்லை');
+      setLoading(false);
+      return;
+    }
+
+    setCompletions(data || []);
+    setError(null);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     fetchCompletions();
@@ -27,20 +48,7 @@ export function useCompletions() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [fetchCompletions]);
 
-  async function fetchCompletions() {
-    const today = new Date().toISOString().split('T')[0];
-
-    const { data } = await supabase
-      .from('completions')
-      .select('*')
-      .eq('date', today)
-      .order('completed_at', { ascending: false });
-
-    setCompletions(data || []);
-    setLoading(false);
-  }
-
-  return { completions, loading, refetch: fetchCompletions };
+  return { completions, loading, error, refetch: fetchCompletions };
 }
