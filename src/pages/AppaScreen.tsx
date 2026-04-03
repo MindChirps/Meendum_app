@@ -1,28 +1,42 @@
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAppState } from '../hooks/useAppState';
 import { TaskCard } from '../components/TaskCard';
 import { DoneButton } from '../components/DoneButton';
 import { RestScreen } from '../components/RestScreen';
-import { supabase, playChime } from '../lib/supabase';
+import { supabase, playChime, getLocalToday } from '../lib/supabase';
 
 export function AppaScreen() {
-  const { appState, loading } = useAppState();
+  const { appState, loading, error } = useAppState();
+  const [completing, setCompleting] = useState(false);
 
   const handleComplete = async () => {
-    if (!appState?.current_task) return;
+    if (!appState?.current_task || completing) return;
 
+    setCompleting(true);
     playChime();
 
-    const { data: allTasks } = await supabase
-      .from('tasks')
-      .select('*')
-      .order('order_index', { ascending: true });
+    try {
+      const { data: allTasks, error: tasksErr } = await supabase
+        .from('tasks')
+        .select('*')
+        .order('order_index', { ascending: true });
 
-    await supabase.from('completions').insert({
-      task_id: appState.current_task.id,
-      date: new Date().toISOString().split('T')[0]
-    });
+      if (tasksErr || !allTasks) {
+        setCompleting(false);
+        return;
+      }
 
-    if (allTasks) {
+      const { error: insertErr } = await supabase.from('completions').insert({
+        task_id: appState.current_task.id,
+        date: getLocalToday()
+      });
+
+      if (insertErr) {
+        setCompleting(false);
+        return;
+      }
+
       const currentIndex = allTasks.findIndex(t => t.id === appState.current_task_id);
       const nextTask = allTasks[currentIndex + 1];
 
@@ -35,14 +49,18 @@ export function AppaScreen() {
           })
           .eq('id', 'singleton');
       } else {
+        // All tasks done — set rest mode and reset to first task for next session
         await supabase
           .from('app_state')
           .update({
             mode: 'rest',
+            current_task_id: allTasks[0].id,
             updated_at: new Date().toISOString()
           })
           .eq('id', 'singleton');
       }
+    } finally {
+      setCompleting(false);
     }
   };
 
@@ -54,14 +72,35 @@ export function AppaScreen() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-yellow-50 flex flex-col items-center justify-center px-6 gap-4">
+        <div className="text-5xl">⚠️</div>
+        <p className="text-3xl text-center text-red-700">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 px-8 py-4 bg-yellow-600 text-white text-2xl rounded-xl"
+        >
+          மீண்டும் முயற்சி
+        </button>
+      </div>
+    );
+  }
+
   if (appState?.mode === 'rest') {
     return <RestScreen />;
   }
 
   if (!appState?.current_task) {
     return (
-      <div className="min-h-screen bg-yellow-50 flex items-center justify-center">
-        <div className="text-5xl text-center px-6">பணிகள் இல்லை</div>
+      <div className="min-h-screen bg-yellow-50 flex flex-col items-center justify-center px-6 gap-4">
+        <div className="text-5xl text-center">பணிகள் இல்லை</div>
+        <Link
+          to="/amma"
+          className="mt-4 px-8 py-4 bg-amber-600 text-white text-2xl rounded-xl"
+        >
+          அம்மா பக்கம் →
+        </Link>
       </div>
     );
   }
@@ -71,7 +110,7 @@ export function AppaScreen() {
       <TaskCard task={appState.current_task} />
 
       <div className="px-4 pb-8">
-        <DoneButton onClick={handleComplete} />
+        <DoneButton onClick={handleComplete} disabled={completing} />
       </div>
     </div>
   );

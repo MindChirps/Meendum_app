@@ -1,32 +1,16 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
 import type { Task } from '../types/database';
 
 interface DailyProgressProps {
   completedTaskIds: string[];
+  tasks: Task[];
 }
 
-export function DailyProgress({ completedTaskIds }: DailyProgressProps) {
-  const [allTasks, setAllTasks] = useState<Task[]>([]);
-
-  useEffect(() => {
-    fetchTasks();
-  }, []);
-
-  async function fetchTasks() {
-    const { data } = await supabase
-      .from('tasks')
-      .select('*')
-      .order('order_index', { ascending: true });
-
-    setAllTasks(data || []);
-  }
-
+export function DailyProgress({ completedTaskIds, tasks }: DailyProgressProps) {
   return (
     <div className="mt-6">
       <h3 className="text-3xl font-bold text-gray-900 mb-4">இன்றைய சாதனைகள்</h3>
       <div className="space-y-3">
-        {allTasks.map((task) => {
+        {tasks.map((task) => {
           const isCompleted = completedTaskIds.includes(task.id);
           return (
             <div

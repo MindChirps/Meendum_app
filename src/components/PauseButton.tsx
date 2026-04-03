@@ -12,7 +12,7 @@ export function PauseButton({ isResting, onClick }: PauseButtonProps) {
       } text-white text-4xl font-bold rounded-2xl transition-all active:scale-95 flex flex-col items-center justify-center gap-2`}
     >
       <span className="text-5xl">{isResting ? '▶️' : '🛑'}</span>
-      <span>{isResting ? 'தொடரவும்' : 'நான் ஓய்வு எடுக்கிறேன்'}</span>
+      <span>{isResting ? 'தொடரவும்' : 'ஓய்வு எடுக்கட்டும்'}</span>
     </button>
   );
 }
