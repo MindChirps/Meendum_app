@@ -1,29 +1,52 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppState } from '../hooks/useAppState';
 import { useCompletions } from '../hooks/useCompletions';
-import { CurrentTask } from '../components/CurrentTask';
+import { SOSButton } from '../components/SOSButton';
+import { TaskConfigForm } from '../components/TaskConfigForm';
 import { DailyProgress } from '../components/DailyProgress';
 import { supabase } from '../lib/supabase';
 import type { Task } from '../types/database';
 
 export function AmmaScreen() {
-  const { appState, loading: stateLoading, error: stateError } = useAppState();
+  const { appState, loading: stateLoading, error: stateError, refetch: refetchState } = useAppState();
   const { completions, loading: completionsLoading, error: completionsError } = useCompletions();
   const [allTasks, setAllTasks] = useState<Task[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(true);
+  const [showConfig, setShowConfig] = useState(false);
+  const [sosBusy, setSosBusy] = useState(false);
 
-  useEffect(() => {
-    async function fetchTasks() {
-      const { data } = await supabase
-        .from('tasks')
-        .select('*')
-        .order('order_index', { ascending: true });
-      setAllTasks(data || []);
-    }
-    fetchTasks();
+  const fetchTasks = useCallback(async () => {
+    setTasksLoading(true);
+    const { data } = await supabase
+      .from('tasks')
+      .select('*')
+      .order('order_index', { ascending: true });
+    setAllTasks((data || []) as Task[]);
+    setTasksLoading(false);
   }, []);
 
-  if (stateLoading || completionsLoading) {
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
+
+  const handleSOS = async () => {
+    if (!appState || sosBusy) return;
+    setSosBusy(true);
+    const newMode = appState.mode === 'rest' ? 'task' : 'rest';
+    const { error } = await supabase
+      .from('app_state')
+      .update({ mode: newMode, updated_at: new Date().toISOString() })
+      .eq('id', 'singleton');
+    if (error) {
+      alert('நிலை மாற்ற இயலவில்லை');
+    } else {
+      refetchState();
+    }
+    setSosBusy(false);
+  };
+
+  if (stateLoading || completionsLoading || tasksLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-5xl">⏳</div>
@@ -47,15 +70,13 @@ export function AmmaScreen() {
     );
   }
 
-  const completedTaskIds = completions.map(c => c.task_id);
-  const allDone = appState?.mode === 'rest';
-  const isEvening = new Date().getHours() >= 18;
+  const completedCount = completions.filter(c => c.status === 'completed').length;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-8">
       <div className="bg-amber-100 p-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">
-          இன்று: {completions.length} பயிற்சிகள் ✅
+          இன்று: {completedCount} முடிந்தது ✅
         </h1>
         <Link
           to="/appa"
@@ -66,20 +87,30 @@ export function AmmaScreen() {
       </div>
 
       <div className="p-6 space-y-6">
-        {allDone || (isEvening && completions.length > 0) ? (
-          <div className="p-8 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl text-center">
-            <div className="text-6xl mb-4">🎉</div>
-            <h2 className="text-4xl font-bold text-gray-900">
-              {allDone
-                ? 'இன்றைய எல்லா பயிற்சிகளும் முடிந்தது!'
-                : `இன்று நீங்கள் இருவரும் சேர்ந்து ${completions.length} பயிற்சிகள் முடித்தீர்கள்!`}
-            </h2>
-          </div>
-        ) : (
-          <CurrentTask task={appState?.current_task || null} />
-        )}
+        {/* SOS / Rest button — always at the top so Amma can hit it instantly */}
+        <SOSButton
+          isResting={appState?.mode === 'rest'}
+          onClick={handleSOS}
+          disabled={sosBusy}
+        />
 
-        <DailyProgress completedTaskIds={completedTaskIds} tasks={allTasks} />
+        {/* Daily progress with skip reasons */}
+        <DailyProgress completions={completions} tasks={allTasks} />
+
+        {/* Collapsible task configuration */}
+        <div>
+          <button
+            onClick={() => setShowConfig(!showConfig)}
+            className="w-full p-4 bg-white border-2 border-gray-200 text-2xl font-bold text-gray-900 rounded-2xl"
+          >
+            ⚙️ பயிற்சிகளை அமைக்கவும் {showConfig ? '▲' : '▼'}
+          </button>
+          {showConfig && (
+            <div className="mt-4">
+              <TaskConfigForm tasks={allTasks} onChanged={fetchTasks} />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

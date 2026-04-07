@@ -1,3 +1,7 @@
+export type SessionType = 'morning' | 'afternoon' | 'evening';
+export type TaskStatus = 'completed' | 'skipped';
+export type SkipReason = 'pain' | 'fatigue';
+
 export interface Task {
   id: string;
   tamil_text: string;
@@ -5,6 +9,8 @@ export interface Task {
   audio_url: string | null;
   scheduled_time: string | null;
   order_index: number;
+  session_type: SessionType | null;
+  reps_or_time_target: number | null;
 }
 
 export interface AppState {
@@ -19,6 +25,9 @@ export interface Completion {
   task_id: string;
   completed_at: string;
   date: string;
+  duration_seconds: number | null;
+  status: TaskStatus;
+  skip_reason: SkipReason | null;
 }
 
 export interface AppStateWithTask extends AppState {
