@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { useAppState } from '../hooks/useAppState';
 import { useCompletions } from '../hooks/useCompletions';
 import { CurrentTask } from '../components/CurrentTask';
-import { PauseButton } from '../components/PauseButton';
 import { DailyProgress } from '../components/DailyProgress';
 import { supabase } from '../lib/supabase';
 import type { Task } from '../types/database';
@@ -23,24 +22,6 @@ export function AmmaScreen() {
     }
     fetchTasks();
   }, []);
-
-  const handleTogglePause = async () => {
-    if (!appState) return;
-
-    const newMode = appState.mode === 'rest' ? 'task' : 'rest';
-
-    const { error } = await supabase
-      .from('app_state')
-      .update({
-        mode: newMode,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', 'singleton');
-
-    if (error) {
-      alert('நிலை மாற்ற இயலவில்லை');
-    }
-  };
 
   if (stateLoading || completionsLoading) {
     return (
@@ -67,6 +48,7 @@ export function AmmaScreen() {
   }
 
   const completedTaskIds = completions.map(c => c.task_id);
+  const allDone = appState?.mode === 'rest';
   const isEvening = new Date().getHours() >= 18;
 
   return (
@@ -84,21 +66,18 @@ export function AmmaScreen() {
       </div>
 
       <div className="p-6 space-y-6">
-        {isEvening && completions.length > 0 ? (
+        {allDone || (isEvening && completions.length > 0) ? (
           <div className="p-8 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl text-center">
             <div className="text-6xl mb-4">🎉</div>
             <h2 className="text-4xl font-bold text-gray-900">
-              இன்று நீங்கள் இருவரும் சேர்ந்து {completions.length} பயிற்சிகள் முடித்தீர்கள்!
+              {allDone
+                ? 'இன்றைய எல்லா பயிற்சிகளும் முடிந்தது!'
+                : `இன்று நீங்கள் இருவரும் சேர்ந்து ${completions.length} பயிற்சிகள் முடித்தீர்கள்!`}
             </h2>
           </div>
         ) : (
           <CurrentTask task={appState?.current_task || null} />
         )}
-
-        <PauseButton
-          isResting={appState?.mode === 'rest'}
-          onClick={handleTogglePause}
-        />
 
         <DailyProgress completedTaskIds={completedTaskIds} tasks={allTasks} />
       </div>
