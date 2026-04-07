@@ -62,6 +62,11 @@ export function useSessionTasks(session: SessionType | null) {
         { event: 'INSERT', schema: 'public', table: 'completions' },
         () => fetchTasks()
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'tasks' },
+        () => fetchTasks()
+      )
       .subscribe();
 
     return () => {

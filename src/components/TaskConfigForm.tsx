@@ -81,6 +81,7 @@ function SessionSection({ session, tasks, isOpen, onToggle, onChanged }: Session
     });
 
     if (insertErr) {
+      console.error('Task insert failed:', insertErr);
       setError('பயிற்சியைச் சேர்க்க இயலவில்லை');
     } else {
       onChanged();
@@ -92,6 +93,7 @@ function SessionSection({ session, tasks, isOpen, onToggle, onChanged }: Session
     setBusy(true);
     const { error: delErr } = await supabase.from('tasks').delete().eq('id', taskId);
     if (delErr) {
+      console.error('Task delete failed:', delErr);
       setError('நீக்க இயலவில்லை');
     } else {
       onChanged();
