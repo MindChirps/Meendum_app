@@ -16,8 +16,10 @@
      - Add a partial UNIQUE on (task_id, date) WHERE status = 'completed'
        to still prevent duplicate completion entries
 
-  4. Re-seed the 5 hardcoded task options across the three sessions
-     so Amma has a working setup on day 1.
+  4. Idempotent default-task seeding
+     - Only inserts the 7 default tasks if the tasks table is currently empty
+     - Never deletes existing tasks or completion history
+     - Safe to re-run on any database
 */
 
 -- 1. Tasks: session + target
@@ -60,12 +62,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS completions_task_date_completed_unique
   ON completions (task_id, date)
   WHERE status = 'completed';
 
--- 4. Re-seed tasks for the new session-aware schema
--- Wipe and reseed (idempotent for fresh dev installs)
-DELETE FROM completions;
-DELETE FROM tasks;
-
-INSERT INTO tasks (tamil_text, icon, session_type, reps_or_time_target, order_index) VALUES
+-- 4. Idempotent seeding — only insert defaults if tasks table is empty.
+-- This preserves any caregiver-configured tasks on re-runs and never
+-- touches completion history.
+INSERT INTO tasks (tamil_text, icon, session_type, reps_or_time_target, order_index)
+SELECT * FROM (VALUES
   -- Morning
   ('தண்ணீர் குடிக்கவும்', '💧', 'morning', 1, 1),
   ('கையை உயர்த்துதல்', '🤲', 'morning', 10, 2),
@@ -75,8 +76,12 @@ INSERT INTO tasks (tamil_text, icon, session_type, reps_or_time_target, order_in
   ('நடைப்பயிற்சி', '🚶', 'afternoon', 5, 5),
   -- Evening
   ('கையை உயர்த்துதல்', '🤲', 'evening', 10, 6),
-  ('மூச்சு பயிற்சி', '🫁', 'evening', 5, 7);
+  ('மூச்சு பயிற்சி', '🫁', 'evening', 5, 7)
+) AS defaults(tamil_text, icon, session_type, reps_or_time_target, order_index)
+WHERE NOT EXISTS (SELECT 1 FROM tasks);
 
--- Re-initialize app_state singleton (current_task_id will be set by app on first load)
-UPDATE app_state SET current_task_id = NULL, mode = 'task', updated_at = now()
-  WHERE id = 'singleton';
+-- Backfill any pre-existing tasks that don't yet have a session_type
+-- (carry-over from the original schema's seeded tasks).
+UPDATE tasks
+  SET session_type = 'morning'
+  WHERE session_type IS NULL;
