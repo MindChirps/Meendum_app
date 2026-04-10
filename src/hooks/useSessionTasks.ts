@@ -47,6 +47,8 @@ export function useSessionTasks(session: SessionType | null) {
     const loggedIds = new Set((todaysLogs || []).map(l => l.task_id));
     const remaining = (sessionTasks || []).filter(t => !loggedIds.has(t.id));
 
+    console.log(`[useSessionTasks] session=${session}, total=${(sessionTasks || []).length}, logged=${loggedIds.size}, remaining=${remaining.length}`);
+
     setTasks(remaining as Task[]);
     setError(null);
     setLoading(false);
