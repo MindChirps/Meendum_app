@@ -67,6 +67,12 @@ function SessionSection({ session, tasks, isOpen, onToggle, onChanged }: Session
     const option = TASK_OPTIONS.find(o => o.tamil_text === selectedOption);
     if (!option) return;
 
+    // Prevent duplicate task in the same session
+    if (tasks.some(t => t.tamil_text === option.tamil_text)) {
+      setError('இந்தப் பயிற்சி ஏற்கனவே சேர்க்கப்பட்டுள்ளது');
+      return;
+    }
+
     setBusy(true);
     setError(null);
 

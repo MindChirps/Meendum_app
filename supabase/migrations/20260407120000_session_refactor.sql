@@ -82,6 +82,11 @@ WHERE NOT EXISTS (SELECT 1 FROM tasks);
 
 -- Backfill any pre-existing tasks that don't yet have a session_type
 -- (carry-over from the original schema's seeded tasks).
+-- Use scheduled_time to assign to the correct session; fall back to morning.
 UPDATE tasks
-  SET session_type = 'morning'
+  SET session_type = CASE
+    WHEN scheduled_time IS NOT NULL AND scheduled_time::time >= '17:00:00' THEN 'evening'
+    WHEN scheduled_time IS NOT NULL AND scheduled_time::time >= '12:00:00' THEN 'afternoon'
+    ELSE 'morning'
+  END
   WHERE session_type IS NULL;
