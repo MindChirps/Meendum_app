@@ -18,11 +18,16 @@ export function AmmaScreen() {
 
   const fetchTasks = useCallback(async () => {
     setTasksLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('tasks')
       .select('*')
       .order('order_index', { ascending: true });
-    setAllTasks((data || []) as Task[]);
+    if (error) {
+      console.error('Tasks fetch failed:', error);
+    }
+    const tasks = (data || []) as Task[];
+    console.log('Fetched tasks:', tasks.length, 'with session_type:', tasks.map(t => t.session_type));
+    setAllTasks(tasks);
     setTasksLoading(false);
   }, []);
 
