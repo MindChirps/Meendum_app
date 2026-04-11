@@ -38,17 +38,28 @@ export function AppaScreen() {
       ? Math.round((Date.now() - startTimeRef.current) / 1000)
       : null;
 
-    await supabase.from('completions').insert({
+    const { error } = await supabase.from('completions').insert({
       task_id: currentTask.id,
       date: getLocalToday(),
       duration_seconds: durationSec,
       status: 'completed'
     });
 
+    if (error) {
+      console.error('Completion insert failed:', error);
+      // If it's a duplicate constraint error, still advance to next task
+      if (error.code === '23505') {
+        console.warn('Duplicate completion — skipping to next task');
+      } else {
+        setBusy(false);
+        return;
+      }
+    }
+
     startTimeRef.current = null;
     setFlow('idle');
+    await refetch();
     setBusy(false);
-    refetch();
   };
 
   const handleSkipPress = () => {
@@ -59,16 +70,20 @@ export function AppaScreen() {
     if (!currentTask || busy) return;
     setBusy(true);
 
-    await supabase.from('completions').insert({
+    const { error } = await supabase.from('completions').insert({
       task_id: currentTask.id,
       date: getLocalToday(),
       status: 'skipped',
       skip_reason: reason
     });
 
+    if (error) {
+      console.error('Skip insert failed:', error);
+    }
+
     setFlow('idle');
+    await refetch();
     setBusy(false);
-    refetch();
   };
 
   // ----- States -----
