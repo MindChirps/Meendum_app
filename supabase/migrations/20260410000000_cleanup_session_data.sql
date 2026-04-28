@@ -42,7 +42,21 @@ CREATE UNIQUE INDEX IF NOT EXISTS completions_task_date_completed_unique
   ON completions (task_id, date)
   WHERE status = 'completed';
 
--- ========== 3. RLS POLICIES FOR TASKS WRITE ==========
+-- ========== 3. FIX FOREIGN KEYS TO ALLOW TASK DELETION ==========
+
+-- completions.task_id → SET NULL so history rows survive but don't block delete
+ALTER TABLE completions DROP CONSTRAINT IF EXISTS completions_task_id_fkey;
+ALTER TABLE completions
+  ADD CONSTRAINT completions_task_id_fkey
+  FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE SET NULL;
+
+-- app_state.current_task_id → SET NULL so singleton doesn't block delete
+ALTER TABLE app_state DROP CONSTRAINT IF EXISTS app_state_current_task_id_fkey;
+ALTER TABLE app_state
+  ADD CONSTRAINT app_state_current_task_id_fkey
+  FOREIGN KEY (current_task_id) REFERENCES tasks(id) ON DELETE SET NULL;
+
+-- ========== 4. RLS POLICIES FOR TASKS WRITE ==========
 
 DROP POLICY IF EXISTS "Anyone can insert tasks" ON tasks;
 CREATE POLICY "Anyone can insert tasks"
@@ -56,12 +70,12 @@ DROP POLICY IF EXISTS "Anyone can delete tasks" ON tasks;
 CREATE POLICY "Anyone can delete tasks"
   ON tasks FOR DELETE TO anon USING (true);
 
--- ========== 4. DATA CLEANUP ==========
+-- ========== 5. DATA CLEANUP ==========
 
 -- Remove test duplicates (rows added via config form — NULL scheduled_time)
 DELETE FROM tasks WHERE scheduled_time IS NULL AND session_type IS NOT NULL;
 
--- ========== 5. ASSIGN session_type FOR ORIGINAL SEED TASKS ==========
+-- ========== 6. ASSIGN session_type FOR ORIGINAL SEED TASKS ==========
 
 -- For tasks that have scheduled_time, derive session from it
 UPDATE tasks
@@ -82,7 +96,7 @@ UPDATE tasks
 SET reps_or_time_target = 10
 WHERE reps_or_time_target IS NULL;
 
--- ========== 6. REALTIME PUBLICATION ==========
+-- ========== 7. REALTIME PUBLICATION ==========
 
 -- Ensure tables are in the realtime publication (harmless if already added)
 DO $$
