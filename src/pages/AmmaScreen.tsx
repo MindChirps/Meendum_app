@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppState } from '../hooks/useAppState';
 import { useCompletions } from '../hooks/useCompletions';
+import { useWeeklyStats } from '../hooks/useWeeklyStats';
 import { SOSButton } from '../components/SOSButton';
 import { TaskConfigForm } from '../components/TaskConfigForm';
 import { DailyProgress } from '../components/DailyProgress';
+import { WeeklyTrend } from '../components/WeeklyTrend';
 import { supabase } from '../lib/supabase';
 import type { Task } from '../types/database';
 
@@ -15,6 +17,7 @@ export function AmmaScreen() {
   const [tasksLoading, setTasksLoading] = useState(true);
   const [showConfig, setShowConfig] = useState(false);
   const [sosBusy, setSosBusy] = useState(false);
+  const weeklyStats = useWeeklyStats(allTasks.length);
 
   const fetchTasks = useCallback(async () => {
     setTasksLoading(true);
@@ -101,6 +104,11 @@ export function AmmaScreen() {
 
         {/* Daily progress with skip reasons */}
         <DailyProgress completions={completions} tasks={allTasks} />
+
+        {/* Weekly/monthly trends */}
+        {!weeklyStats.loading && !weeklyStats.error && (
+          <WeeklyTrend stats={weeklyStats} totalTasksPerDay={allTasks.length} />
+        )}
 
         {/* Collapsible task configuration */}
         <div>
