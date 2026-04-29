@@ -14,6 +14,13 @@ export function getLocalToday(): string {
   return new Date().toLocaleDateString('en-CA');
 }
 
+/** Returns the date N days ago as YYYY-MM-DD in the user's local timezone. */
+export function getDateDaysAgo(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toLocaleDateString('en-CA');
+}
+
 /** Plays an 800 Hz bell tone for 300ms using the Web Audio API. */
 export function playChime() {
   try {

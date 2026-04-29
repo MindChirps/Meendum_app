@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAppState } from '../hooks/useAppState';
 import { useCurrentSession } from '../hooks/useCurrentSession';
 import { useSessionTasks } from '../hooks/useSessionTasks';
+import { useWeeklyStats } from '../hooks/useWeeklyStats';
 import { HemiparesisFigure } from '../components/HemiparesisFigure';
 import { PostureBadge } from '../components/PostureBadge';
 import { BreathingAnimation } from '../components/BreathingAnimation';
@@ -20,6 +21,7 @@ export function AppaScreen() {
   const [flow, setFlow] = useState<FlowState>('idle');
   const [busy, setBusy] = useState(false);
   const startTimeRef = useRef<number | null>(null);
+  const weeklyStats = useWeeklyStats(tasks.length);
 
   const currentTask = tasks[0] || null;
 
@@ -134,6 +136,7 @@ export function AppaScreen() {
 
   // All session tasks done
   if (!currentTask) {
+    const streak = weeklyStats.currentStreak;
     return (
       <div className="min-h-screen bg-yellow-50 flex flex-col items-center justify-center px-6 gap-4">
         <PostureBadge />
@@ -141,6 +144,11 @@ export function AppaScreen() {
         <h1 className="text-4xl font-bold text-center text-gray-900">
           இந்த நேரத்தின் பயிற்சிகள் முடிந்தது!
         </h1>
+        {streak > 0 && (
+          <p className="text-3xl font-bold text-center text-orange-700 mt-2">
+            {streak >= 7 ? '🎉' : '🔥'} {streak} நாட்கள் தொடர்ச்சி!
+          </p>
+        )}
         <Link
           to="/amma"
           className="mt-6 px-8 py-4 bg-amber-600 text-white text-2xl rounded-xl"
