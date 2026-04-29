@@ -28,7 +28,7 @@ function computeSession(): SessionType | null {
   let session: SessionType | null = null;
   if (hour >= 6 && hour < 12) session = 'morning';
   else if (hour >= 12 && hour < 17) session = 'afternoon';
-  else if (hour >= 17 && hour < 21) session = 'evening';
+  else if (hour >= 17 && hour < 24) session = 'evening';
   console.log(`[useCurrentSession] hour=${hour}, session=${session}`);
   return session;
 }
