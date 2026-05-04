@@ -44,6 +44,13 @@ self.addEventListener('fetch', (event) => {
         .catch(() => caches.match(event.request))
     );
   } else {
+    // Skip caching for non-GET requests (POST, PUT, DELETE, PATCH)
+    // Cache API only supports GET/HEAD/OPTIONS
+    if (event.request.method !== 'GET' && event.request.method !== 'HEAD') {
+      event.respondWith(fetch(event.request));
+      return;
+    }
+
     event.respondWith(
       caches.match(event.request)
         .then((cached) => {
