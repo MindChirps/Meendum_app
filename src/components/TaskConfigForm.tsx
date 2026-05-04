@@ -76,14 +76,23 @@ function SessionSection({ session, tasks, isOpen, onToggle, onChanged }: Session
     setBusy(true);
     setError(null);
 
-    const maxOrder = tasks.reduce((m, t) => Math.max(m, t.order_index), 0);
+    // Calculate order_index for this session (1-indexed per session)
+    const nextOrder = tasks.length + 1;
+
+    // Map session to scheduled_time
+    const sessionTimeMap: Record<string, string> = {
+      morning: '08:00',
+      afternoon: '14:00',
+      evening: '18:00'
+    };
 
     const { error: insertErr } = await supabase.from('tasks').insert({
       tamil_text: option.tamil_text,
       icon: option.icon,
       session_type: session,
       reps_or_time_target: target,
-      order_index: maxOrder + 1
+      order_index: nextOrder,
+      scheduled_time: sessionTimeMap[session] || '12:00'
     });
 
     if (insertErr) {
